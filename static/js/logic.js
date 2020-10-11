@@ -1,35 +1,66 @@
-
-
+// Location of chosen JSON
 var queryURL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
 
-// Perform a GET request to the query URL
+// Query the JSON
 d3.json(queryURL, function(data) {
-    // Once we get a response, send the data.features object to the createFeatures function
+    // Use response to create features
     createFeatures(data.features);
   });
   
   function createFeatures(earthquakeData) {
   
-    // Define a function we want to run once for each feature in the features array
-    // Give each feature a popup describing the place and time of the earthquake
+    // Construct popups
     function onEachFeature(feature, layer) {
-      layer.bindPopup("<h3>" + feature.properties.place +
-        "</h3><hr><p>" + new Date(feature.properties.time) + "</p>");
+        layer.bindPopup("<strong>" + feature.properties.place + "</strong><br>" +
+        new Date(feature.properties.time) +
+        "<br><strong>Magnitude: </strong>" + feature.properties.mag +
+        "<br><strong>Depth (km): </strong>" + feature.geometry.coordinates[2] );
     }
   
-    // Create a GeoJSON layer containing the features array on the earthquakeData object
-    // Run the onEachFeature function once for each piece of data in the array
+    // Determine color of circle
+    function circleColor(depth) {
+        if (depth < 10) {
+            return "green"
+        }
+        else if (depth < 30) {
+            return "yellowgreen"
+        }
+        else if (depth < 50) {
+            return "yellow"
+        }
+        else if (depth < 70) {
+            return "darkorange"
+        }
+        else if (depth < 90) {
+            return "orangered"
+        }
+        else {return "red"}
+    }
+
+    // GeoJSON layer with circles
     var earthquakes = L.geoJSON(earthquakeData, {
+        pointToLayer: function(earthquakeData) {
+            var latitude = earthquakeData.geometry.coordinates[1];
+            var longitude = earthquakeData.geometry.coordinates[0];
+            return L.circle([latitude, longitude],
+                {
+                    radius : earthquakeData.properties.mag * 10000,
+                    color : circleColor(earthquakeData.geometry.coordinates[2]),
+                    fillOpacity: 1,
+                    stroke: false
+                }
+                );
+        },
       onEachFeature: onEachFeature
     });
   
-    // Sending our earthquakes layer to the createMap function
+    // Create map with earthquakes layer
     createMap(earthquakes);
   }
 
 
 function createMap(earthquakes){
-    // Create the tile layer that will be the background of our map
+    // Lightmap layer
     var lightmap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
     attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
     maxZoom: 18,
@@ -37,7 +68,7 @@ function createMap(earthquakes){
     accessToken: API_KEY
     });
 
-    // Dark layer
+    // Darkmap layer
     var darkmap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
     attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
     maxZoom: 18,
@@ -54,40 +85,13 @@ function createMap(earthquakes){
         Earthquakes: earthquakes
     };
 
-    // Create the map with our layers
+    // Map with coords, zoom, layers
     var map = L.map("map", {
         center: [39, -105],
         zoom: 5,
-        // Specify the default layers
+        // Default layers
         layers: [darkmap, earthquakes]
     });
 
     L.control.layers(baseMaps, overlayMaps).addTo(map);
 }
-
-
-// for content layers see activity 1.08
-
-
-
-// //Testing adding a marker
-// var marker = L.marker([45.52, -122.67], {
-//     draggable: true,
-//     title: "My First Marker",
-//   }).addTo(map);
-  
-//   // Binding a pop-up to our marker
-// marker.bindPopup("Hello There!");
-
-// HOW TO MAKE A FUNCTION BASED ON THE DATA
-// // Define a markerSize function that will give each city a different radius based on its population
-// function markerSize(population) {
-//     return population / 40;
-//   }
-// L.circle(cities[i].location, { radius: markerSize(cities[i].population) }
-//
-// OR WITHOUT A FUNCTION:
-//
-// radius: countries[i].points * 1500
-
-// Color choice see World Cup data 1.07
