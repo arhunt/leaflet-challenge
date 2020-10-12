@@ -1,13 +1,11 @@
 // Location of chosen JSON
 var queryURL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+var platesURL = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json"
 
-// Query the JSON
-d3.json(queryURL, function(data) {
-    // Use response to create features
-    createFeatures(data.features);
-  });
-  
-  function createFeatures(earthquakeData) {
+// Query the JSON, Use response to create features
+d3.json(queryURL, function(data) { createFeatures(data.features); });
+
+function createFeatures(earthquakeData) {
   
     // Construct popups
     function onEachFeature(feature, layer) {
@@ -20,7 +18,7 @@ d3.json(queryURL, function(data) {
     // Determine color of circle
     function circleColor(depth) {
         if (depth < 10) {
-            return "green"
+            return "mediumaquamarine"
         }
         else if (depth < 30) {
             return "yellowgreen"
@@ -56,7 +54,7 @@ d3.json(queryURL, function(data) {
   
     // Create map with earthquakes layer
     createMap(earthquakes);
-  }
+}
 
 
 function createMap(earthquakes){
@@ -76,13 +74,32 @@ function createMap(earthquakes){
     accessToken: API_KEY
     });
 
+    var satellitemap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+    maxZoom: 18,
+    id: "mapbox.satellite",
+    accessToken: API_KEY
+    });
+
+    var plates = new L.LayerGroup();
+
+    d3.json(platesURL, function(data) {
+        L.geoJSON(data, {
+            style: function() {
+                return {color: "purple", weight: 2}
+            }
+        }).addTo(plates)
+        })
+
     var baseMaps = {
         Light: lightmap,
-        Dark: darkmap
+        Dark: darkmap,
+        Satellite: satellitemap
     };
 
     var overlayMaps = {
-        Earthquakes: earthquakes
+        "Tectonic Plates": plates,
+        "Earthquakes": earthquakes,
     };
 
     // Map with coords, zoom, layers
@@ -90,8 +107,30 @@ function createMap(earthquakes){
         center: [39, -105],
         zoom: 5,
         // Default layers
-        layers: [darkmap, earthquakes]
+        layers: [darkmap, earthquakes, plates]
     });
 
     L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+    // Legend - code from https://leafletjs.com/examples/choropleth/
+    var legend = L.control({position: "bottomright"});
+    
+    legend.onAdd = function(map) {
+        var div = L.DomUtil.create("div", "info legend"),
+        grades = [],
+        labels = [];
+
+        div.innerHTML += "<h4>Depth (km)</h4>";
+        div.innerHTML += '<i style = "background: mediumaquamarine"></i> up to 10<br>';
+        div.innerHTML += '<i style = "background: yellowgreen"></i> 10 to 30<br>';
+        div.innerHTML += '<i style = "background: gold"></i> 30 to 50<br>';
+        div.innerHTML += '<i style = "background: darkorange"></i> 50 to 70<br>';
+        div.innerHTML += '<i style = "background: orangered"></i> 70 to 90<br>';
+        div.innerHTML += '<i style = "background: red"></i> 90+<br>';
+
+        return div;
+    };
+    // Add the info legend to the map
+    legend.addTo(map);
 }
+
