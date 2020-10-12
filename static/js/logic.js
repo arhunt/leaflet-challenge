@@ -35,14 +35,14 @@ function createFeatures(earthquakeData) {
         else {return "red"}
     }
 
-    // GeoJSON layer with circles
+    // GeoJSON Point to layer with circles https://leafletjs.com/examples/geojson/
     var earthquakes = L.geoJSON(earthquakeData, {
         pointToLayer: function(earthquakeData) {
             var latitude = earthquakeData.geometry.coordinates[1];
             var longitude = earthquakeData.geometry.coordinates[0];
-            return L.circle([latitude, longitude],
+            return L.circleMarker([latitude, longitude],
                 {
-                    radius : earthquakeData.properties.mag * 10000,
+                    radius : earthquakeData.properties.mag * 2,
                     color : circleColor(earthquakeData.geometry.coordinates[2]),
                     fillOpacity: 1,
                     stroke: false
@@ -81,15 +81,18 @@ function createMap(earthquakes){
     accessToken: API_KEY
     });
 
+    // Create plate boundaries using Plates JSON
+    // https://leafletjs.com/examples/geojson/
+    // GeoJSON in LineString format already
+
     var plates = new L.LayerGroup();
 
     d3.json(platesURL, function(data) {
-        L.geoJSON(data, {
-            style: function() {
-                return {color: "purple", weight: 2}
-            }
-        }).addTo(plates)
-        })
+        L.geoJSON(data, {style: {color: "purple", weight: 2} })
+        .addTo(plates)
+    });
+
+    // Define base and overlay layers
 
     var baseMaps = {
         Light: lightmap,
@@ -130,7 +133,8 @@ function createMap(earthquakes){
 
         return div;
     };
-    // Add the info legend to the map
+
+    // Add legend to map
     legend.addTo(map);
 }
 
